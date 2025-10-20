@@ -31,14 +31,20 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'nombre' => 'required|string|max:100',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $request->name,
+            'nombre' => $request->nombre,
             'email' => $request->email,
             'password' => $request->password,
+            'fecha_registro' => now(),
+            'tema' => 'claro', // Tema por defecto
+            'notificaciones_activas' => true, // Notificaciones activadas por defecto
+            'activo' => true, // Usuario activo por defecto
         ]);
 
         event(new Registered($user));

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -28,6 +29,7 @@ class FortifyServiceProvider extends ServiceProvider
     {
         $this->configureViews();
         $this->configureRateLimiting();
+        $this->configureAuthentication();
     }
 
     /**
@@ -58,6 +60,32 @@ class FortifyServiceProvider extends ServiceProvider
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
+        });
+    }
+
+    /**
+     * Configure custom authentication logic.
+     */
+    private function configureAuthentication(): void
+    {
+        // Validar que el usuario esté activo al hacer login
+        Fortify::authenticateUsing(function (Request $request) {
+            $user = \App\Models\User::where('email', $request->email)->first();
+
+            if ($user && 
+                \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                
+                // Verificar si el usuario está activo
+                if (!$user->activo) {
+                    throw ValidationException::withMessages([
+                        'email' => ['Tu cuenta ha sido desactivada. Por favor contacta al administrador.'],
+                    ]);
+                }
+
+                return $user;
+            }
+
+            return null;
         });
     }
 }

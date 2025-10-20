@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -20,8 +22,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'nombre',
         'email',
         'password',
+        'fecha_registro',
+        'tema',
+        'notificaciones_activas',
+        'activo',
     ];
 
     /**
@@ -47,6 +54,38 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'fecha_registro' => 'datetime',
+            'notificaciones_activas' => 'boolean',
+            'activo' => 'boolean',
         ];
     }
+
+    /**
+     * Relación: Un usuario tiene muchos hábitos.
+     * Equivalente a @OneToMany en Spring Boot
+     */
+    public function habitos(): HasMany
+    {
+        return $this->hasMany(Habito::class);
+    }
+
+    /**
+     * Relación: Muchos a Muchos con Logro (tabla pivote: logro_usuario).
+     * Equivalente a @ManyToMany en Spring Boot
+     */
+    public function logros(): BelongsToMany
+    {
+        return $this->belongsToMany(Logro::class, 'logro_usuario')
+            ->withPivot('fecha_obtenido', 'habito_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Scope para obtener solo usuarios activos.
+     */
+    public function scopeActivos($query)
+    {
+        return $query->where('activo', true);
+    }
 }
+

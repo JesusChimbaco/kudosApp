@@ -24,6 +24,7 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'nombre' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= 'password',
@@ -31,6 +32,10 @@ class UserFactory extends Factory
             'two_factor_secret' => Str::random(10),
             'two_factor_recovery_codes' => Str::random(10),
             'two_factor_confirmed_at' => now(),
+            'fecha_registro' => now(),
+            'tema' => 'claro',
+            'notificaciones_activas' => true,
+            'activo' => true,
         ];
     }
 
