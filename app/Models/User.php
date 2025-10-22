@@ -83,8 +83,7 @@ class User extends Authenticatable
     public function logros(): BelongsToMany
     {
         return $this->belongsToMany(Logro::class, 'logro_usuario')
-            ->withPivot('fecha_obtenido', 'habito_id')
-            ->withTimestamps();
+            ->withPivot('fecha_obtenido', 'habito_id');
     }
 
     /**
