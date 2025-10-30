@@ -1,0 +1,483 @@
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Calendar, Clock, Target, CheckSquare, Trash2 } from 'lucide-vue-next';
+import { type BreadcrumbItem } from '@/types';
+import axios from 'axios';
+
+// Interfaces
+interface Habito {
+    id: number;
+    categoria_id: number;
+    categoria?: Categoria;
+    nombre: string;
+    descripcion: string;
+    frecuencia: string;
+    hora_preferida: string;
+    objetivo_diario: number;
+    fecha_inicio: string;
+    activo: boolean;
+    emoji?: string;
+    color?: string;
+}
+
+interface Categoria {
+    id: number;
+    nombre: string;
+}
+
+// Breadcrumbs
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Gestión de Hábitos',
+        href: '/habitos',
+    },
+];
+
+// Estado de los hábitos
+const habitos = ref<Habito[]>([]);
+const categorias = ref<Categoria[]>([]);
+const loading = ref(true);
+const isDialogOpen = ref(false);
+
+// Estado del formulario
+const form = ref({
+    categoria_id: '',
+    nombre: '',
+    descripcion: '',
+    frecuencia: 'diario',
+    hora_preferida: '',
+    objetivo_diario: '1',
+    fecha_inicio: '',
+    activo: true
+});
+
+// Eliminamos categorías ya que no están en la base de datos
+const frecuencias = [
+    { value: 'diario', label: 'Diario' },
+    { value: 'semanal', label: 'Semanal' },
+    { value: 'mensual', label: 'Mensual' },
+    { value: 'personalizado', label: 'Personalizado' }
+];
+
+// Obtener token CSRF
+const getCSRFToken = () => {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    return metaTag ? metaTag.getAttribute('content') : '';
+};
+
+// Funciones
+const fetchHabitos = async () => {
+    try {
+        loading.value = true;
+        
+        const response = await axios.get('/api/web/habitos', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            habitos.value = response.data.data;
+        }
+    } catch (error: any) {
+        console.error('Error al cargar hábitos:', error);
+        if (error.response?.status === 401) {
+            alert('No estás autenticado. Por favor, inicia sesión.');
+            window.location.href = '/login';
+        } else {
+            alert('No se pudieron cargar los hábitos');
+        }
+    } finally {
+        loading.value = false;
+    }
+};
+
+const fetchCategorias = async () => {
+    try {
+        const response = await axios.get('/api/web/categorias', {
+            headers: {
+                'X-CSRF-TOKEN': getCSRFToken(),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.data.success) {
+            categorias.value = response.data.data;
+        }
+    } catch (error: any) {
+        console.error('Error al cargar categorías:', error);
+        // No mostramos alert para categorías ya que no es crítico
+    }
+};
+
+const createHabito = async () => {
+    if (!form.value.nombre.trim()) {
+        alert('El nombre del hábito es requerido');
+        return;
+    }
+
+    try {
+        const formData = {
+            ...form.value,
+            objetivo_diario: parseInt(form.value.objetivo_diario)
+        };
+
+        const response = await axios.post('/api/web/habitos', formData, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            alert('¡Hábito creado correctamente!');
+            
+            // Limpiar formulario y cerrar dialog
+            resetForm();
+            isDialogOpen.value = false;
+            
+            // Recargar hábitos
+            await fetchHabitos();
+        }
+    } catch (error: any) {
+        console.error('Error al crear hábito:', error);
+        
+        if (error.response?.status === 401) {
+            alert('No estás autenticado. Por favor, inicia sesión.');
+            window.location.href = '/login';
+        } else if (error.response?.status === 422) {
+            const errors = error.response.data.errors;
+            let errorMessage = 'Errores de validación:\n';
+            for (const field in errors) {
+                errorMessage += `- ${errors[field].join(', ')}\n`;
+            }
+            alert(errorMessage);
+        } else {
+            const errorMessage = error.response?.data?.message || 'Error al crear el hábito';
+            alert(errorMessage);
+        }
+    }
+};
+
+const deleteHabito = async (id: number) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este hábito?')) {
+        return;
+    }
+
+    try {
+        const response = await axios.delete(`/api/web/habitos/${id}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            alert('¡Hábito eliminado correctamente!');
+            await fetchHabitos();
+        }
+    } catch (error: any) {
+        console.error('Error al eliminar hábito:', error);
+        if (error.response?.status === 401) {
+            alert('No estás autenticado. Por favor, inicia sesión.');
+            window.location.href = '/login';
+        } else {
+            alert('Error al eliminar el hábito');
+        }
+    }
+};
+
+const toggleActivo = async (id: number) => {
+    try {
+        const response = await axios.patch(`/api/web/habitos/${id}/toggle-activo`, {}, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            alert('Estado del hábito actualizado');
+            await fetchHabitos();
+        }
+    } catch (error: any) {
+        console.error('Error al cambiar estado:', error);
+        if (error.response?.status === 401) {
+            alert('No estás autenticado. Por favor, inicia sesión.');
+            window.location.href = '/login';
+        } else {
+            alert('Error al cambiar el estado del hábito');
+        }
+    }
+};
+
+const resetForm = () => {
+    form.value = {
+        categoria_id: '',
+        nombre: '',
+        descripcion: '',
+        frecuencia: 'diario',
+        hora_preferida: '',
+        objetivo_diario: '1',
+        fecha_inicio: '',
+        activo: true
+    };
+};
+
+const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-ES');
+};
+
+const getFrecuenciaLabel = (frecuencia: string) => {
+    const freq = frecuencias.find(f => f.value === frecuencia);
+    return freq?.label || frecuencia;
+};
+
+// Cargar datos al montar el componente
+onMounted(() => {
+    // Establecer fecha de inicio por defecto (hoy)
+    form.value.fecha_inicio = new Date().toISOString().split('T')[0];
+    fetchHabitos();
+    fetchCategorias();
+});
+</script>
+
+<template>
+    <Head title="Gestión de Hábitos" />
+
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <div class="p-6 space-y-6">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight">Gestión de Hábitos</h1>
+                    <p class="text-muted-foreground">
+                        Administra tus hábitos y haz seguimiento de tu progreso
+                    </p>
+                </div>
+                
+                <Dialog v-model:open="isDialogOpen">
+                    <DialogTrigger as-child>
+                        <Button class="gap-2 bg-gradient-kudos hover:opacity-90 text-white border-none hover-lift">
+                            <Plus class="w-4 h-4" />
+                            Crear Hábito
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent class="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Crear Nuevo Hábito</DialogTitle>
+                            <DialogDescription>
+                                Completa la información para crear un nuevo hábito
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <Label for="nombre">Nombre del Hábito</Label>
+                                <Input
+                                    id="nombre"
+                                    v-model="form.nombre"
+                                    placeholder="Ej: Hacer ejercicio"
+                                    required
+                                />
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <Label for="descripcion">Descripción</Label>
+                                <textarea
+                                    id="descripcion"
+                                    v-model="form.descripcion"
+                                    placeholder="Describe tu hábito..."
+                                    rows="3"
+                                    class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <Label for="categoria">Categoría</Label>
+                                <select
+                                    v-model="form.categoria_id"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    required
+                                >
+                                    <option value="">Selecciona una categoría</option>
+                                    <option
+                                        v-for="categoria in categorias"
+                                        :key="categoria.id"
+                                        :value="categoria.id"
+                                    >
+                                        {{ categoria.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 gap-4">
+                                <div class="space-y-2">
+                                    <Label for="frecuencia">Frecuencia</Label>
+                                    <select
+                                        v-model="form.frecuencia"
+                                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option
+                                            v-for="freq in frecuencias"
+                                            :key="freq.value"
+                                            :value="freq.value"
+                                        >
+                                            {{ freq.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <Label for="hora_preferida">Hora Preferida</Label>
+                                    <Input
+                                        id="hora_preferida"
+                                        v-model="form.hora_preferida"
+                                        type="time"
+                                    />
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <Label for="objetivo_diario">Objetivo Diario</Label>
+                                    <Input
+                                        id="objetivo_diario"
+                                        v-model="form.objetivo_diario"
+                                        type="number"
+                                        min="1"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <Label for="fecha_inicio">Fecha de Inicio</Label>
+                                <Input
+                                    id="fecha_inicio"
+                                    v-model="form.fecha_inicio"
+                                    type="date"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        
+                        <DialogFooter>
+                            <Button variant="outline" @click="isDialogOpen = false">
+                                Cancelar
+                            </Button>
+                            <Button @click="createHabito">
+                                Crear Hábito
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="loading" class="flex items-center justify-center py-12">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p class="mt-2 text-muted-foreground">Cargando hábitos...</p>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="habitos.length === 0" class="text-center py-12">
+                <CheckSquare class="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 class="text-lg font-semibold mb-2">No tienes hábitos creados</h3>
+                <p class="text-muted-foreground mb-4">
+                    Comienza tu journey creando tu primer hábito
+                </p>
+                <Button @click="isDialogOpen = true">
+                    <Plus class="w-4 h-4 mr-2" />
+                    Crear mi primer hábito
+                </Button>
+            </div>
+
+            <!-- Hábitos List -->
+            <div v-else class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Card
+                    v-for="habito in habitos"
+                    :key="habito.id"
+                    class="relative"
+                >
+                    <CardHeader>
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-1">
+                                <CardTitle class="text-lg">{{ habito.nombre }}</CardTitle>
+                                <div v-if="habito.categoria" class="flex items-center gap-2">
+                                    <Badge variant="outline" class="text-xs">
+                                        {{ habito.categoria.nombre }}
+                                    </Badge>
+                                </div>
+                                <CardDescription>{{ habito.descripcion }}</CardDescription>
+                            </div>
+                            <Badge
+                                :variant="habito.activo ? 'default' : 'secondary'"
+                                class="ml-2"
+                            >
+                                {{ habito.activo ? 'Activo' : 'Inactivo' }}
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    
+                    <CardContent class="space-y-3">
+                        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock class="w-4 h-4" />
+                            <span>{{ getFrecuenciaLabel(habito.frecuencia) }}</span>
+                            <span v-if="habito.hora_preferida">
+                                a las {{ habito.hora_preferida }}
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Target class="w-4 h-4" />
+                            <span>Objetivo diario: {{ habito.objetivo_diario }}</span>
+                        </div>
+                        
+                        <div class="text-sm text-muted-foreground">
+                            Inicio: {{ formatDate(habito.fecha_inicio) }}
+                        </div>
+                        
+                        <div class="flex gap-2 pt-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="toggleActivo(habito.id)"
+                                class="flex-1"
+                            >
+                                {{ habito.activo ? 'Desactivar' : 'Activar' }}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="deleteHabito(habito.id)"
+                            >
+                                <Trash2 class="w-4 h-4" />
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    </AppLayout>
+</template>
