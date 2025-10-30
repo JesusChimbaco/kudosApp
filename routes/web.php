@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Api\HabitoController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\Web\RecordatorioWebController;
+use App\Http\Controllers\Api\RegistroDiarioController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -29,8 +30,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/api/web/habitos', [HabitoController::class, 'index']);
     Route::get('/api/web/habitos/{id}', [HabitoController::class, 'show']);
     Route::post('/api/web/habitos', [HabitoController::class, 'store']);
+    // Soporta actualización desde la UI (PUT/PATCH)
+    Route::match(['put', 'patch'], '/api/web/habitos/{id}', [HabitoController::class, 'update']);
     Route::delete('/api/web/habitos/{id}', [HabitoController::class, 'destroy']);
     Route::patch('/api/web/habitos/{id}/toggle-activo', [HabitoController::class, 'toggleActivo']);
+    
+    // Rutas para marcar hábitos como completados (registro diario)
+    Route::post('/api/web/habitos/{habito}/completar', [RegistroDiarioController::class, 'completar']);
+    Route::post('/api/web/habitos/{habito}/descompletar', [RegistroDiarioController::class, 'descompletar']);
+    Route::get('/api/web/habitos/{habito}/registros', [RegistroDiarioController::class, 'historial']);
+    Route::get('/api/web/habitos/{habito}/registro/{fecha}', [RegistroDiarioController::class, 'obtenerPorFecha']);
     
     // Rutas para categorías
     Route::get('/api/web/categorias', [CategoriaController::class, 'index']);

@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Clock, Target, CheckSquare, Trash2, Bell } from 'lucide-vue-next';
+import { Plus, Calendar, Clock, Target, CheckSquare, Trash2, Bell, Edit } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import axios from 'axios';
 
@@ -50,6 +50,8 @@ const habitos = ref<Habito[]>([]);
 const categorias = ref<Categoria[]>([]);
 const loading = ref(true);
 const isDialogOpen = ref(false);
+const isEditMode = ref(false);
+const editingId = ref<number | null>(null);
 
 // Estado del formulario
 const form = ref({
@@ -230,6 +232,109 @@ const toggleActivo = async (id: number) => {
     }
 };
 
+const editHabito = async (id: number) => {
+    try {
+        const response = await axios.get(`/api/web/habitos/${id}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            const habito = response.data.data;
+            
+            // Cargar datos en el formulario
+            form.value = {
+                categoria_id: habito.categoria_id?.toString() || '',
+                nombre: habito.nombre,
+                descripcion: habito.descripcion || '',
+                frecuencia: habito.frecuencia,
+                hora_preferida: habito.hora_preferida || '',
+                objetivo_diario: habito.objetivo_diario?.toString() || '1',
+                fecha_inicio: habito.fecha_inicio ? habito.fecha_inicio.split('T')[0] : '',
+                activo: habito.activo
+            };
+            
+            isEditMode.value = true;
+            editingId.value = id;
+            isDialogOpen.value = true;
+        }
+    } catch (error: any) {
+        console.error('Error al cargar hábito:', error);
+        alert('Error al cargar los datos del hábito');
+    }
+};
+
+const updateHabito = async () => {
+    if (!form.value.nombre.trim()) {
+        alert('El nombre del hábito es requerido');
+        return;
+    }
+
+    try {
+        const formData = {
+            ...form.value,
+            objetivo_diario: parseInt(form.value.objetivo_diario)
+        };
+
+        const response = await axios.put(`/api/web/habitos/${editingId.value}`, formData, {
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            alert('¡Hábito actualizado correctamente!');
+            
+            // Limpiar formulario y cerrar dialog
+            resetForm();
+            isEditMode.value = false;
+            editingId.value = null;
+            isDialogOpen.value = false;
+            
+            // Recargar hábitos
+            await fetchHabitos();
+        }
+    } catch (error: any) {
+        console.error('Error al actualizar hábito:', error);
+        
+        if (error.response?.status === 401) {
+            alert('No estás autenticado. Por favor, inicia sesión.');
+            window.location.href = '/login';
+        } else if (error.response?.status === 422) {
+            const errors = error.response.data.errors;
+            let errorMessage = 'Errores de validación:\n';
+            for (const field in errors) {
+                errorMessage += `- ${errors[field].join(', ')}\n`;
+            }
+            alert(errorMessage);
+        } else {
+            const errorMessage = error.response?.data?.message || 'Error al actualizar el hábito';
+            alert(errorMessage);
+        }
+    }
+};
+
+const saveHabito = async () => {
+    if (isEditMode.value) {
+        await updateHabito();
+    } else {
+        await createHabito();
+    }
+};
+
+const openCreateDialog = () => {
+    resetForm();
+    isEditMode.value = false;
+    editingId.value = null;
+    isDialogOpen.value = true;
+};
+
 const resetForm = () => {
     form.value = {
         categoria_id: '',
@@ -241,6 +346,8 @@ const resetForm = () => {
         fecha_inicio: '',
         activo: true
     };
+    isEditMode.value = false;
+    editingId.value = null;
 };
 
 const formatDate = (dateString: string) => {
@@ -277,16 +384,19 @@ onMounted(() => {
                 
                 <Dialog v-model:open="isDialogOpen">
                     <DialogTrigger as-child>
-                        <Button class="gap-2 bg-gradient-kudos hover:opacity-90 text-white border-none hover-lift">
+                        <Button 
+                            class="gap-2 bg-gradient-kudos hover:opacity-90 text-white border-none hover-lift"
+                            @click="openCreateDialog"
+                        >
                             <Plus class="w-4 h-4" />
                             Crear Hábito
                         </Button>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Crear Nuevo Hábito</DialogTitle>
+                            <DialogTitle>{{ isEditMode ? 'Editar Hábito' : 'Crear Nuevo Hábito' }}</DialogTitle>
                             <DialogDescription>
-                                Completa la información para crear un nuevo hábito
+                                {{ isEditMode ? 'Modifica la información del hábito' : 'Completa la información para crear un nuevo hábito' }}
                             </DialogDescription>
                         </DialogHeader>
                         
@@ -384,8 +494,8 @@ onMounted(() => {
                             <Button variant="outline" @click="isDialogOpen = false">
                                 Cancelar
                             </Button>
-                            <Button @click="createHabito">
-                                Crear Hábito
+                            <Button @click="saveHabito">
+                                {{ isEditMode ? 'Actualizar' : 'Crear' }} Hábito
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -468,6 +578,14 @@ onMounted(() => {
                             >
                                 <Bell class="w-4 h-4 mr-1" />
                                 Recordatorios
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="editHabito(habito.id)"
+                                title="Editar hábito"
+                            >
+                                <Edit class="w-4 h-4" />
                             </Button>
                             <Button
                                 variant="outline"

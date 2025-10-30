@@ -6,8 +6,8 @@ import { Head } from '@inertiajs/vue3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckSquare, TrendingUp, Calendar, Target, Flame, Star } from 'lucide-vue-next';
-import { ref, onMounted } from 'vue';
+import { CheckSquare, TrendingUp, Calendar, Target, Flame, Star, Check } from 'lucide-vue-next';
+import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,12 +29,24 @@ interface Habito {
     objetivo_diario: number;
     fecha_inicio: string;
     activo: boolean;
+    racha_actual?: number;
+    racha_maxima?: number;
+}
+
+interface RegistroDiario {
+    id: number;
+    habito_id: number;
+    fecha: string;
+    completado: boolean;
+    veces_completado: number;
 }
 
 // Estado reactivo para datos reales
 const habitos = ref<Habito[]>([]);
+const registrosHoy = ref<Record<number, RegistroDiario>>({});
 const loading = ref(true);
 const habitosActivos = ref(0);
+const completadosHoy = ref(0);
 
 // Obtener token CSRF
 const getCSRFToken = () => {
@@ -59,6 +71,9 @@ const fetchHabitos = async () => {
             habitos.value = response.data.data;
             // Contar hábitos activos
             habitosActivos.value = habitos.value.filter(h => h.activo).length;
+            
+            // Cargar registros de hoy para cada hábito
+            await fetchRegistrosHoy();
         }
     } catch (error: any) {
         console.error('Error al cargar hábitos:', error);
@@ -67,14 +82,82 @@ const fetchHabitos = async () => {
     }
 };
 
+// Función para cargar los registros de hoy
+const fetchRegistrosHoy = async () => {
+    const hoy = new Date().toISOString().split('T')[0];
+    
+    // Resetear registros y contador
+    registrosHoy.value = {};
+    completadosHoy.value = 0;
+    
+    for (const habito of habitos.value.filter(h => h.activo)) {
+        try {
+            const response = await axios.get(`/api/web/habitos/${habito.id}/registro/${hoy}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCSRFToken(),
+                },
+                withCredentials: true
+            });
+
+            if (response.data.success && response.data.data) {
+                registrosHoy.value[habito.id] = response.data.data;
+                if (response.data.data.completado) {
+                    completadosHoy.value++;
+                }
+            }
+        } catch (error) {
+            // Si no hay registro para hoy, está bien
+            console.debug(`No hay registro para hábito ${habito.id}`);
+        }
+    }
+};
+
+// Función para marcar/desmarcar como completado
+const toggleCompletado = async (habitoId: number) => {
+    const estaCompletado = registrosHoy.value[habitoId]?.completado || false;
+    
+    try {
+        const endpoint = estaCompletado 
+            ? `/api/web/habitos/${habitoId}/descompletar`
+            : `/api/web/habitos/${habitoId}/completar`;
+
+        const response = await axios.post(endpoint, {
+            fecha: new Date().toISOString().split('T')[0]
+        }, {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCSRFToken(),
+            },
+            withCredentials: true
+        });
+
+        if (response.data.success) {
+            // Actualizar el registro local
+            registrosHoy.value[habitoId] = response.data.data;
+            
+            // Recalcular completados desde cero
+            completadosHoy.value = Object.values(registrosHoy.value).filter(r => r.completado).length;
+        }
+    } catch (error: any) {
+        console.error('Error al marcar hábito:', error);
+        alert('Error al actualizar el hábito. Por favor, intenta de nuevo.');
+    }
+};
+
+// Verificar si un hábito está completado hoy
+const estaCompletadoHoy = (habitoId: number) => {
+    return registrosHoy.value[habitoId]?.completado || false;
+};
+
 // Datos con valores reales y placeholders
 const getStats = () => [
     {
-        title: 'Hábitos Activos',
-        value: loading.value ? '...' : habitosActivos.value.toString(),
-        description: 'Hábitos en seguimiento',
+        title: 'Hábitos de Hoy',
+        value: loading.value ? '...' : `${completadosHoy.value}/${habitosActivos.value}`,
+        description: 'Completados hoy',
         icon: CheckSquare,
-        trend: loading.value ? 'Cargando...' : `${habitosActivos.value} ${habitosActivos.value === 1 ? 'hábito' : 'hábitos'}`,
+        trend: loading.value ? 'Cargando...' : `${completadosHoy.value} de ${habitosActivos.value} hábitos`,
         color: 'text-primary'
     },
     {
@@ -170,25 +253,58 @@ onMounted(() => {
                         </div>
                         <div v-else class="space-y-3">
                             <div 
-                                v-for="habit in habitos.slice(0, 4)" 
+                                v-for="habit in habitos.filter(h => h.activo).slice(0, 4)" 
                                 :key="habit.id"
-                                class="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent transition-colors"
+                                class="flex items-start space-x-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
+                                @click="toggleCompletado(habit.id)"
                             >
-                                <div class="flex items-center gap-3">
-                                    <div :class="`w-3 h-3 rounded-full ${habit.activo ? 'bg-secondary' : 'bg-muted'}`"></div>
-                                    <div>
-                                        <span :class="`font-medium ${habit.activo ? 'text-foreground' : 'text-muted-foreground'}`">
-                                            {{ habit.nombre }}
-                                        </span>
-                                        <p class="text-xs text-muted-foreground">
-                                            {{ habit.descripcion || 'Sin descripción' }}
-                                        </p>
+                                <!-- Checkbox -->
+                                <div class="flex-shrink-0 mt-0.5">
+                                    <div 
+                                        :class="[
+                                            'h-5 w-5 rounded border-2 flex items-center justify-center transition-all',
+                                            estaCompletadoHoy(habit.id) 
+                                                ? 'bg-primary border-primary' 
+                                                : 'border-muted-foreground/50 hover:border-primary'
+                                        ]"
+                                    >
+                                        <Check 
+                                            v-if="estaCompletadoHoy(habit.id)" 
+                                            class="h-4 w-4 text-primary-foreground" 
+                                        />
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <Badge :variant="habit.activo ? 'default' : 'secondary'" class="text-xs">
-                                        {{ habit.activo ? 'Activo' : 'Inactivo' }}
-                                    </Badge>
+                                
+                                <!-- Contenido del hábito -->
+                                <div class="flex-1 min-w-0">
+                                    <h4 
+                                        :class="[
+                                            'font-medium',
+                                            estaCompletadoHoy(habit.id) ? 'line-through text-muted-foreground' : ''
+                                        ]"
+                                    >
+                                        {{ habit.nombre }}
+                                    </h4>
+                                    <p 
+                                        :class="[
+                                            'text-sm',
+                                            estaCompletadoHoy(habit.id) ? 'text-muted-foreground/70' : 'text-muted-foreground'
+                                        ]"
+                                    >
+                                        {{ habit.descripcion || 'Sin descripción' }}
+                                    </p>
+                                    
+                                    <!-- Mostrar racha si existe -->
+                                    <div v-if="habit.racha_actual && habit.racha_actual > 0" class="flex items-center mt-1 space-x-2">
+                                        <div class="flex items-center text-xs text-orange-600">
+                                            <Flame class="h-3 w-3 mr-1" />
+                                            <span>{{ habit.racha_actual }} días</span>
+                                        </div>
+                                        <div v-if="habit.racha_maxima && habit.racha_maxima > habit.racha_actual" class="flex items-center text-xs text-muted-foreground">
+                                            <Star class="h-3 w-3 mr-1" />
+                                            <span>Máx: {{ habit.racha_maxima }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
