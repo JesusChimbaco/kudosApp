@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Clock, Target, CheckSquare, Trash2 } from 'lucide-vue-next';
+import { Plus, Calendar, Clock, Target, CheckSquare, Trash2, Bell } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import axios from 'axios';
 
@@ -462,8 +462,18 @@ onMounted(() => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                @click="toggleActivo(habito.id)"
+                                @click="$inertia.visit(`/habitos/${habito.id}/recordatorios`)"
                                 class="flex-1"
+                                title="Gestionar recordatorios"
+                            >
+                                <Bell class="w-4 h-4 mr-1" />
+                                Recordatorios
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="toggleActivo(habito.id)"
+                                title="Activar/Desactivar"
                             >
                                 {{ habito.activo ? 'Desactivar' : 'Activar' }}
                             </Button>
@@ -471,6 +481,7 @@ onMounted(() => {
                                 variant="outline"
                                 size="sm"
                                 @click="deleteHabito(habito.id)"
+                                title="Eliminar hábito"
                             >
                                 <Trash2 class="w-4 h-4" />
                             </Button>

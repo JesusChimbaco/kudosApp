@@ -35,7 +35,6 @@ class Recordatorio extends Model
      */
     protected $casts = [
         'activo' => 'boolean',
-        'hora' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
