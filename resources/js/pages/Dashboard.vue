@@ -117,10 +117,14 @@ const fetchRegistrosHoy = async () => {
 const toggleCompletado = async (habitoId: number) => {
     const estaCompletado = registrosHoy.value[habitoId]?.completado || false;
     
+    console.log('Toggle para hábito:', habitoId, 'Está completado:', estaCompletado);
+    
     try {
         const endpoint = estaCompletado 
             ? `/api/web/habitos/${habitoId}/descompletar`
             : `/api/web/habitos/${habitoId}/completar`;
+
+        console.log('Llamando endpoint:', endpoint);
 
         const response = await axios.post(endpoint, {
             fecha: new Date().toISOString().split('T')[0]
@@ -132,9 +136,11 @@ const toggleCompletado = async (habitoId: number) => {
             withCredentials: true
         });
 
+        console.log('Respuesta:', response.data);
+
         if (response.data.success) {
             // Actualizar el registro local
-            registrosHoy.value[habitoId] = response.data.data;
+            registrosHoy.value[habitoId] = response.data.data.registro || response.data.data;
             
             // Recalcular completados desde cero
             completadosHoy.value = Object.values(registrosHoy.value).filter(r => r.completado).length;
