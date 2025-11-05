@@ -322,7 +322,7 @@ onMounted(() => {
                 
                 <Dialog v-model:open="isDialogOpen" @update:open="!$event && resetForm()">
                     <DialogTrigger as-child>
-                        <Button class="gap-2 bg-gradient-kudos hover:opacity-90 text-white border-none">
+                        <Button class="gap-2 bg-gradient-kudos hover:opacity-90 text-white border-none hover-lift">
                             <Plus class="w-4 h-4" />
                             Nuevo Recordatorio
                         </Button>
@@ -390,8 +390,8 @@ onMounted(() => {
                                     v-model="form.tipo"
                                     class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                 >
-                                    <option value="email">📧 Email</option>
-                                    <option value="push" disabled>📱 Push (Próximamente)</option>
+                                    <option value="email">Email</option>
+                                    <option value="push" disabled>Push (Próximamente)</option>
                                 </select>
                             </div>
 
@@ -488,7 +488,7 @@ onMounted(() => {
                                         {{ recordatorio.activo ? 'Activo' : 'Inactivo' }}
                                     </Badge>
                                     <Badge variant="outline">
-                                        {{ recordatorio.tipo === 'email' ? '📧 Email' : '📱 Push' }}
+                                        {{ recordatorio.tipo === 'email' ? 'Email' : 'Push' }}
                                     </Badge>
                                 </div>
 
@@ -553,9 +553,3 @@ onMounted(() => {
         </div>
     </AppLayout>
 </template>
-
-<style scoped>
-.bg-gradient-kudos {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-</style>

@@ -373,7 +373,7 @@ onMounted(() => {
                             @click="$inertia.visit('/habitos')"
                         >
                             <CheckSquare class="h-4 w-4 mr-2" />
-                            Crear Hábito
+                            Crear hábito
                         </Button>
                     </div>
                 </CardContent>

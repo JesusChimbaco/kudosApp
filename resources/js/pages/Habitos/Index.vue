@@ -389,7 +389,7 @@ onMounted(() => {
                             @click="openCreateDialog"
                         >
                             <Plus class="w-4 h-4" />
-                            Crear Hábito
+                            Crear hábito
                         </Button>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-md">
@@ -528,7 +528,7 @@ onMounted(() => {
                 <Card
                     v-for="habito in habitos"
                     :key="habito.id"
-                    class="relative"
+                    class="relative flex flex-col"
                 >
                     <CardHeader>
                         <div class="flex items-start justify-between">
@@ -550,59 +550,72 @@ onMounted(() => {
                         </div>
                     </CardHeader>
                     
-                    <CardContent class="space-y-3">
-                        <div class="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock class="w-4 h-4" />
-                            <span>{{ getFrecuenciaLabel(habito.frecuencia) }}</span>
-                            <span v-if="habito.hora_preferida">
-                                a las {{ habito.hora_preferida }}
-                            </span>
+                    <CardContent class="space-y-3 flex-1 flex flex-col">
+                        <div>
+                            <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock class="w-4 h-4" />
+                                <span>{{ getFrecuenciaLabel(habito.frecuencia) }}</span>
+                                <span v-if="habito.hora_preferida">
+                                    a las {{ habito.hora_preferida }}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                                <Target class="w-4 h-4" />
+                                <span>Objetivo diario: {{ habito.objetivo_diario }}</span>
+                            </div>
+
+                            <div class="text-sm text-muted-foreground mt-2">
+                                Inicio: {{ formatDate(habito.fecha_inicio) }}
+                            </div>
                         </div>
-                        
-                        <div class="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Target class="w-4 h-4" />
-                            <span>Objetivo diario: {{ habito.objetivo_diario }}</span>
-                        </div>
-                        
-                        <div class="text-sm text-muted-foreground">
-                            Inicio: {{ formatDate(habito.fecha_inicio) }}
-                        </div>
-                        
-                        <div class="flex gap-2 pt-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                @click="$inertia.visit(`/habitos/${habito.id}/recordatorios`)"
-                                class="flex-1"
-                                title="Gestionar recordatorios"
-                            >
-                                <Bell class="w-4 h-4 mr-1" />
-                                Recordatorios
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                @click="editHabito(habito.id)"
-                                title="Editar hábito"
-                            >
-                                <Edit class="w-4 h-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                @click="toggleActivo(habito.id)"
-                                title="Activar/Desactivar"
-                            >
-                                {{ habito.activo ? 'Desactivar' : 'Activar' }}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                @click="deleteHabito(habito.id)"
-                                title="Eliminar hábito"
-                            >
-                                <Trash2 class="w-4 h-4" />
-                            </Button>
+
+                        <!-- Footer actions: left column (recordatorios, desactivar) and right column (editar, eliminar) -->
+                        <div class="mt-auto pt-4">
+                            <div class="grid grid-cols-2 gap-4 items-end">
+                                <!-- Left column: stacked actions -->
+                                <div class="flex flex-col gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        @click="$inertia.visit(`/habitos/${habito.id}/recordatorios`)"
+                                        title="Gestionar recordatorios"
+                                    >
+                                        <Bell class="w-4 h-4 mr-1" />
+                                        Recordatorios
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        @click="toggleActivo(habito.id)"
+                                        title="Activar/Desactivar"
+                                    >
+                                        {{ habito.activo ? 'Desactivar' : 'Activar' }}
+                                    </Button>
+                                </div>
+
+                                <!-- Right column: edit/delete aligned to right -->
+                                <div class="flex items-center justify-end gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        @click="editHabito(habito.id)"
+                                        title="Editar hábito"
+                                    >
+                                        <Edit class="w-4 h-4" />
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        @click="deleteHabito(habito.id)"
+                                        title="Eliminar hábito"
+                                    >
+                                        <Trash2 class="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

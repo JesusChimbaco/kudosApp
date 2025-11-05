@@ -19,6 +19,10 @@ Route::get('habitos', function () {
     return Inertia::render('Habitos/Index');
 })->middleware(['auth', 'verified'])->name('habitos.index');
 
+Route::get('calendario', function () {
+    return Inertia::render('Calendario/Index');
+})->middleware(['auth', 'verified'])->name('calendario.index');
+
 Route::get('habitos/{habitoId}/recordatorios', function ($habitoId) {
     return Inertia::render('Habitos/Recordatorios', [
         'habitoId' => (int) $habitoId
