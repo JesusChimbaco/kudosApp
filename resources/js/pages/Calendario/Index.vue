@@ -81,6 +81,26 @@ const formatDisplayDate = (date: Date) => {
     });
 };
 
+// Formatear hora sin segundos (HH:MM)
+const formatHora = (horaCompleta: string) => {
+    if (!horaCompleta) return '';
+    // Si la hora viene en formato HH:MM:SS, tomar solo HH:MM
+    return horaCompleta.substring(0, 5);
+};
+
+// Obtener todas las horas de recordatorios para un hábito en una fecha específica
+const getHorasRecordatorios = (habitoId: number, date: Date): string[] => {
+    const recordatoriosDelHabito = getRecordatoriosForHabit(habitoId, date);
+    const horas = recordatoriosDelHabito.map(r => formatHora(r.hora)).filter(Boolean);
+    // Eliminar duplicados y ordenar las horas
+    return [...new Set(horas)].sort();
+};
+
+// Verificar si una fecha es el día actual
+const isToday = (date: Date): boolean => {
+    return date.toDateString() === new Date().toDateString();
+};
+
 const formatDisplayMonth = (date: Date) => {
     return date.toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -676,39 +696,53 @@ onMounted(() => {
                                 <div 
                                     v-for="habito in habitos.filter(h => shouldShowHabit(h, currentDate))" 
                                     :key="habito.id"
-                                    class="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                                    :class="[
+                                        'p-3 border rounded-lg transition-colors',
+                                        isToday(currentDate) 
+                                            ? 'hover:bg-accent/50 cursor-pointer' 
+                                            : 'opacity-60 cursor-not-allowed'
+                                    ]"
                                 >
-                                    <div class="flex items-center gap-3">
-                                        <button
-                                            @click="toggleHabitoCompletion(habito.id, formatDate(currentDate))"
-                                            :class="[
-                                                'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
-                                                isHabitoCompleted(habito.id, formatDate(currentDate))
-                                                    ? 'bg-primary border-primary' 
-                                                    : 'border-muted-foreground/50 hover:border-primary'
-                                            ]"
-                                        >
-                                            <Check 
-                                                v-if="isHabitoCompleted(habito.id, formatDate(currentDate))" 
-                                                class="w-4 h-4 text-primary-foreground" 
-                                            />
-                                        </button>
-                                        <div>
-                                            <p class="font-medium">{{ habito.nombre }}</p>
-                                            <p class="text-sm text-muted-foreground">{{ habito.descripcion }}</p>
-                                        </div>
+                                    <!-- Horarios de recordatorios (arriba, en negrilla) -->
+                                    <div 
+                                        v-if="getHorasRecordatorios(habito.id, currentDate).length > 0"
+                                        class="flex items-center gap-2 mb-3 text-primary/80"
+                                    >
+                                        <Clock class="w-4 h-4" />
+                                        <span class="font-bold text-sm">
+                                            {{ getHorasRecordatorios(habito.id, currentDate).join(' • ') }}
+                                        </span>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <Badge variant="outline" class="text-xs">
-                                            {{ habito.frecuencia }}
-                                        </Badge>
-                                        <div 
-                                            v-for="recordatorio in getRecordatoriosForHabit(habito.id, currentDate)"
-                                            :key="recordatorio.id"
-                                            class="flex items-center gap-1 text-xs text-muted-foreground"
-                                        >
-                                            <Clock class="w-3 h-3" />
-                                            {{ recordatorio.hora }}
+                                    
+                                    <!-- Contenido del hábito -->
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <button
+                                                @click="isToday(currentDate) ? toggleHabitoCompletion(habito.id, formatDate(currentDate)) : null"
+                                                :class="[
+                                                    'w-5 h-5 rounded border-2 flex items-center justify-center transition-all',
+                                                    isHabitoCompleted(habito.id, formatDate(currentDate))
+                                                        ? 'bg-primary border-primary' 
+                                                        : isToday(currentDate)
+                                                            ? 'border-muted-foreground/50 hover:border-primary cursor-pointer'
+                                                            : 'border-muted-foreground/30 cursor-not-allowed'
+                                                ]"
+                                                :disabled="!isToday(currentDate)"
+                                            >
+                                                <Check 
+                                                    v-if="isHabitoCompleted(habito.id, formatDate(currentDate))" 
+                                                    class="w-4 h-4 text-primary-foreground" 
+                                                />
+                                            </button>
+                                            <div>
+                                                <p class="font-medium">{{ habito.nombre }}</p>
+                                                <p class="text-sm text-muted-foreground">{{ habito.descripcion }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <Badge variant="outline" class="text-xs">
+                                                {{ habito.frecuencia }}
+                                            </Badge>
                                         </div>
                                     </div>
                                 </div>
@@ -729,10 +763,24 @@ onMounted(() => {
                     
                     <div class="grid grid-cols-7 gap-2">
                         <div v-for="day in getWeekDays()" :key="day.toISOString()" class="min-h-[200px]">
-                            <Card class="h-full">
+                            <Card 
+                                :class="[
+                                    'h-full',
+                                    day.toDateString() === new Date().toDateString() ? 'ring-2 ring-primary' : ''
+                                ]"
+                            >
                                 <CardHeader class="p-3 pb-2">
-                                    <CardTitle class="text-sm">
+                                    <CardTitle 
+                                        :class="[
+                                            'text-sm flex items-center gap-2',
+                                            day.toDateString() === new Date().toDateString() ? 'text-primary font-bold' : ''
+                                        ]"
+                                    >
                                         {{ day.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }) }}
+                                        <span 
+                                            v-if="day.toDateString() === new Date().toDateString()"
+                                            class="w-2 h-2 bg-primary rounded-full animate-pulse"
+                                        ></span>
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent class="p-3 pt-0">
@@ -740,16 +788,35 @@ onMounted(() => {
                                         <div 
                                             v-for="habito in habitos.filter(h => shouldShowHabit(h, day))" 
                                             :key="habito.id"
-                                            class="p-2 border rounded text-xs hover:bg-accent/50 transition-colors cursor-pointer"
-                                            @click="toggleHabitoCompletion(habito.id, formatDate(day))"
+                                            :class="[
+                                                'p-2 border rounded text-xs transition-colors',
+                                                isToday(day) 
+                                                    ? 'hover:bg-accent/50 cursor-pointer' 
+                                                    : 'opacity-60 cursor-not-allowed'
+                                            ]"
+                                            @click="isToday(day) ? toggleHabitoCompletion(habito.id, formatDate(day)) : null"
                                         >
+                                            <!-- Horarios de recordatorios (arriba, en negrilla) -->
+                                            <div 
+                                                v-if="getHorasRecordatorios(habito.id, day).length > 0"
+                                                class="flex items-center gap-1 mb-2 text-primary/80"
+                                            >
+                                                <Clock class="w-3 h-3" />
+                                                <span class="font-bold text-xs">
+                                                    {{ getHorasRecordatorios(habito.id, day).join(' • ') }}
+                                                </span>
+                                            </div>
+                                            
+                                            <!-- Nombre del hábito con checkbox -->
                                             <div class="flex items-center gap-1">
                                                 <div 
                                                     :class="[
                                                         'w-3 h-3 rounded border flex-shrink-0',
                                                         isHabitoCompleted(habito.id, formatDate(day))
                                                             ? 'bg-primary border-primary' 
-                                                            : 'border-muted-foreground/50'
+                                                            : isToday(day)
+                                                                ? 'border-muted-foreground/50'
+                                                                : 'border-muted-foreground/30'
                                                     ]"
                                                 >
                                                     <Check 
@@ -758,14 +825,6 @@ onMounted(() => {
                                                     />
                                                 </div>
                                                 <span class="truncate">{{ habito.nombre }}</span>
-                                            </div>
-                                            <div 
-                                                v-for="recordatorio in getRecordatoriosForHabit(habito.id, day).slice(0, 1)"
-                                                :key="recordatorio.id"
-                                                class="flex items-center gap-1 text-muted-foreground mt-1"
-                                            >
-                                                <Clock class="w-2 h-2" />
-                                                <span>{{ recordatorio.hora }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -812,8 +871,13 @@ onMounted(() => {
                                         <div 
                                             v-for="habito in getHabitosForDay(day).slice(0, 3)" 
                                             :key="habito.id"
-                                            class="p-1 border rounded text-xs hover:bg-accent/50 transition-colors cursor-pointer"
-                                            @click="toggleHabitoCompletion(habito.id, formatDate(day))"
+                                            :class="[
+                                                'p-1 border rounded text-xs transition-colors',
+                                                isToday(day) 
+                                                    ? 'hover:bg-accent/50 cursor-pointer' 
+                                                    : 'opacity-60 cursor-not-allowed'
+                                            ]"
+                                            @click="isToday(day) ? toggleHabitoCompletion(habito.id, formatDate(day)) : null"
                                         >
                                             <div class="flex items-center gap-1">
                                                 <div 
@@ -821,7 +885,9 @@ onMounted(() => {
                                                         'w-2 h-2 rounded border flex-shrink-0',
                                                         isHabitoCompleted(habito.id, formatDate(day))
                                                             ? 'bg-primary border-primary' 
-                                                            : 'border-muted-foreground/50'
+                                                            : isToday(day)
+                                                                ? 'border-muted-foreground/50'
+                                                                : 'border-muted-foreground/30'
                                                     ]"
                                                 ></div>
                                                 <span class="truncate">{{ habito.nombre }}</span>
