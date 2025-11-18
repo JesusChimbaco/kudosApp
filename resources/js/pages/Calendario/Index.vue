@@ -13,13 +13,16 @@ import axios from 'axios';
 interface Habito {
     id: number;
     categoria_id: number;
+    objetivo_id?: number;
     categoria?: any;
+    objetivo?: any;
     nombre: string;
     descripcion: string;
     frecuencia: string;
-    hora_preferida: string;
+    hora_preferida?: string;
     objetivo_diario: number;
     fecha_inicio: string;
+    fecha_fin?: string;
     activo: boolean;
     dias_semana?: string | number[];
     veces_por_semana?: number;
@@ -225,26 +228,24 @@ const shouldShowHabit = (habito: Habito, date: Date): boolean => {
     const habitStartDate = new Date(habito.fecha_inicio);
     if (date < habitStartDate) return false;
     
+    // Verificar si ya pasó la fecha objetivo (si existe)
+    if (habito.fecha_fin) {
+        const habitEndDate = new Date(habito.fecha_fin);
+        if (date > habitEndDate) return false;
+    }
+    
     const dayOfWeek = date.getDay(); // 0 = domingo, 1 = lunes, etc.
     const dayLetters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
     const currentDayLetter = dayLetters[dayOfWeek];
+    const habitStartDayOfWeek = habitStartDate.getDay();
+    const habitStartDayLetter = dayLetters[habitStartDayOfWeek];
     
     switch (habito.frecuencia) {
         case 'diario':
             return true;
         case 'semanal':
-            // Primero verificar recordatorios del hábito
-            const habitoRecordatorios = recordatorios.value.filter(r => r.habito_id === habito.id && r.activo);
-            
-            if (habitoRecordatorios.length > 0) {
-                return habitoRecordatorios.some(recordatorio => {
-                    return recordatorio.dias_semana && 
-                           typeof recordatorio.dias_semana === 'string' && 
-                           recordatorio.dias_semana.includes(currentDayLetter);
-                });
-            }
-            
-            // Si no hay recordatorios, revisar dias_semana del hábito
+            // Para hábitos semanales, mostrar en el mismo día de la semana que se creó
+            // O usar dias_semana si está configurado
             if (habito.dias_semana) {
                 if (typeof habito.dias_semana === 'string') {
                     return habito.dias_semana.includes(currentDayLetter);
@@ -253,9 +254,10 @@ const shouldShowHabit = (habito: Habito, date: Date): boolean => {
                     return habito.dias_semana.includes(dayOfWeek);
                 }
             }
-            
-            return false;
+            // Si no tiene días específicos, mostrar en el mismo día que se creó
+            return dayOfWeek === habitStartDayOfWeek;
         case 'mensual':
+            // Para hábitos mensuales, mostrar en el mismo día del mes que se creó
             return date.getDate() === habitStartDate.getDate();
         default:
             return false;
@@ -298,6 +300,8 @@ const habitosPorDia = computed(() => {
 const getHabitosForDay = (date: Date): Habito[] => {
     return habitosPorDia.value(date);
 };
+
+
 
 // Verificar si un hábito está completado en una fecha (optimizado)
 const isHabitoCompleted = (habitoId: number, date: string): boolean => {

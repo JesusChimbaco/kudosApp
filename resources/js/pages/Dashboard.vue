@@ -18,16 +18,35 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Interfaces
+interface Objetivo {
+    id: number;
+    user_id: number;
+    nombre: string;
+    descripcion: string;
+    emoji?: string;
+    color?: string;
+    tipo: string;
+    fecha_inicio: string;
+    fecha_objetivo?: string;
+    completado: boolean;
+    fecha_completado?: string;
+    activo: boolean;
+}
+
 interface Habito {
     id: number;
     categoria_id: number;
+    objetivo_id?: number;
     categoria?: any;
+    objetivo?: Objetivo;
     nombre: string;
     descripcion: string;
     frecuencia: string;
-    hora_preferida: string;
+    hora_preferida?: string;
     objetivo_diario: number;
     fecha_inicio: string;
+    fecha_fin?: string;
+    dias_semana?: string | number[];
     activo: boolean;
     racha_actual?: number;
     racha_maxima?: number;
@@ -41,9 +60,21 @@ interface RegistroDiario {
     veces_completado: number;
 }
 
+interface ProgressStats {
+    semanal: { completados: number; total: number; porcentaje: number };
+    mensual: { completados: number; total: number; porcentaje: number };
+    rachaGlobal: number;
+}
+
 // Estado reactivo para datos reales
 const habitos = ref<Habito[]>([]);
+const objetivos = ref<Objetivo[]>([]);
 const registrosHoy = ref<Record<number, RegistroDiario>>({});
+const progressStats = ref<ProgressStats>({
+    semanal: { completados: 0, total: 0, porcentaje: 0 },
+    mensual: { completados: 0, total: 0, porcentaje: 0 },
+    rachaGlobal: 0
+});
 const loading = ref(true);
 const habitosActivos = ref(0);
 const completadosHoy = ref(0);
@@ -59,24 +90,51 @@ const fetchHabitos = async () => {
     try {
         loading.value = true;
         
-        const response = await axios.get('/api/web/habitos', {
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCSRFToken(),
-            },
-            withCredentials: true
-        });
+        // Cargar hábitos, objetivos y estadísticas en paralelo
+        const [habitosResponse, objetivosResponse, statsResponse] = await Promise.all([
+            axios.get('/api/web/habitos', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCSRFToken(),
+                },
+                withCredentials: true
+            }),
+            axios.get('/api/web/objetivos', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCSRFToken(),
+                },
+                withCredentials: true
+            }),
+            axios.get('/api/web/dashboard/stats', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCSRFToken(),
+                },
+                withCredentials: true
+            })
+        ]);
 
-        if (response.data.success) {
-            habitos.value = response.data.data;
-            // Contar hábitos activos
-            habitosActivos.value = habitos.value.filter(h => h.activo).length;
-            
-            // Cargar registros de hoy para cada hábito
-            await fetchRegistrosHoy();
+        if (habitosResponse.data.success) {
+            habitos.value = habitosResponse.data.data;
+            // Contar solo los hábitos que deben mostrarse hoy
+            const hoy = new Date();
+            habitosActivos.value = habitos.value.filter(h => h.activo && shouldShowHabit(h, hoy)).length;
         }
+
+        if (objetivosResponse.data.success) {
+            objetivos.value = objetivosResponse.data.data;
+        }
+
+        if (statsResponse.data.success) {
+            progressStats.value = statsResponse.data.data;
+        }
+            
+        // Cargar registros de hoy
+        await fetchRegistrosHoy();
+        
     } catch (error: any) {
-        console.error('Error al cargar hábitos:', error);
+        console.error('Error al cargar datos:', error);
     } finally {
         loading.value = false;
     }
@@ -84,15 +142,17 @@ const fetchHabitos = async () => {
 
 // Función para cargar los registros de hoy
 const fetchRegistrosHoy = async () => {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = new Date();
+    const fechaHoy = hoy.toISOString().split('T')[0];
     
     // Resetear registros y contador
     registrosHoy.value = {};
     completadosHoy.value = 0;
     
-    for (const habito of habitos.value.filter(h => h.activo)) {
+    // Solo procesar hábitos que deben mostrarse hoy
+    for (const habito of habitos.value.filter(h => h.activo && shouldShowHabit(h, hoy))) {
         try {
-            const response = await axios.get(`/api/web/habitos/${habito.id}/registro/${hoy}`, {
+            const response = await axios.get(`/api/web/habitos/${habito.id}/registro/${fechaHoy}`, {
                 headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': getCSRFToken(),
@@ -156,7 +216,47 @@ const estaCompletadoHoy = (habitoId: number) => {
     return registrosHoy.value[habitoId]?.completado || false;
 };
 
-// Datos con valores reales y placeholders
+// Verificar si un hábito debe mostrarse en una fecha específica (misma lógica que el calendario)
+const shouldShowHabit = (habito: Habito, date: Date): boolean => {
+    const habitStartDate = new Date(habito.fecha_inicio);
+    if (date < habitStartDate) return false;
+    
+    // Verificar si ya pasó la fecha objetivo (si existe)
+    if (habito.fecha_fin) {
+        const habitEndDate = new Date(habito.fecha_fin);
+        if (date > habitEndDate) return false;
+    }
+    
+    const dayOfWeek = date.getDay(); // 0 = domingo, 1 = lunes, etc.
+    const dayLetters = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+    const currentDayLetter = dayLetters[dayOfWeek];
+    const habitStartDayOfWeek = habitStartDate.getDay();
+    
+    switch (habito.frecuencia) {
+        case 'diario':
+            return true;
+        case 'semanal':
+            // Para hábitos semanales, mostrar en el mismo día de la semana que se creó
+            // O usar dias_semana si está configurado
+            if (habito.dias_semana) {
+                if (typeof habito.dias_semana === 'string') {
+                    return habito.dias_semana.includes(currentDayLetter);
+                }
+                if (Array.isArray(habito.dias_semana)) {
+                    return habito.dias_semana.includes(dayOfWeek);
+                }
+            }
+            // Si no tiene días específicos, mostrar en el mismo día que se creó
+            return dayOfWeek === habitStartDayOfWeek;
+        case 'mensual':
+            // Para hábitos mensuales, mostrar en el mismo día del mes que se creó
+            return date.getDate() === habitStartDate.getDate();
+        default:
+            return false;
+    }
+};
+
+// Datos con valores reales
 const getStats = () => [
     {
         title: 'Hábitos de Hoy',
@@ -168,18 +268,18 @@ const getStats = () => [
     },
     {
         title: 'Racha Actual',
-        value: 'X',
+        value: loading.value ? '...' : `${progressStats.value.rachaGlobal}`,
         description: 'Días consecutivos',
         icon: Flame,
-        trend: 'Próximamente',
-        color: 'text-secondary'
+        trend: loading.value ? 'Cargando...' : `${progressStats.value.rachaGlobal} días de constancia`,
+        color: 'text-orange-600'
     },
     {
         title: 'Progreso Mensual',
-        value: 'X',
+        value: loading.value ? '...' : `${progressStats.value.mensual.porcentaje}%`,
         description: 'Objetivos completados',
         icon: TrendingUp,
-        trend: 'Próximamente',
+        trend: loading.value ? 'Cargando...' : `${progressStats.value.mensual.completados}/${progressStats.value.mensual.total} objetivos`,
         color: 'text-primary'
     }
 ];
@@ -259,7 +359,7 @@ onMounted(() => {
                         </div>
                         <div v-else class="space-y-3">
                             <div 
-                                v-for="habit in habitos.filter(h => h.activo).slice(0, 4)" 
+                                v-for="habit in habitos.filter(h => h.activo && shouldShowHabit(h, new Date())).slice(0, 4)" 
                                 :key="habit.id"
                                 class="flex items-start space-x-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors cursor-pointer"
                                 @click="toggleCompletado(habit.id)"
@@ -300,6 +400,13 @@ onMounted(() => {
                                         {{ habit.descripcion || 'Sin descripción' }}
                                     </p>
                                     
+                                    <!-- Mostrar objetivo si existe -->
+                                    <div v-if="habit.objetivo" class="mt-2">
+                                        <Badge variant="secondary" class="text-xs">
+                                            {{ habit.objetivo.emoji }} {{ habit.objetivo.nombre }}
+                                        </Badge>
+                                    </div>
+                                    
                                     <!-- Mostrar racha si existe -->
                                     <div v-if="habit.racha_actual && habit.racha_actual > 0" class="flex items-center mt-1 space-x-2">
                                         <div class="flex items-center text-xs text-orange-600">
@@ -330,26 +437,40 @@ onMounted(() => {
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-4">
-                            <!-- Progress bar placeholder -->
+                            <!-- Progress bar semanal -->
                             <div class="space-y-2">
                                 <div class="flex justify-between text-sm">
-                                    <span>Completado</span>
-                                    <span class="font-medium">Próximamente</span>
+                                    <span>Progreso Semanal</span>
+                                    <span class="font-medium">
+                                        {{ loading ? '...' : `${progressStats.semanal.porcentaje}%` }}
+                                    </span>
                                 </div>
                                 <div class="w-full bg-muted rounded-full h-2">
-                                    <div class="bg-gradient-to-r from-muted-foreground to-muted-foreground h-2 rounded-full" style="width: 0%"></div>
+                                    <div 
+                                        class="bg-gradient-kudos h-2 rounded-full transition-all duration-500" 
+                                        :style="`width: ${progressStats.semanal.porcentaje}%`"
+                                    ></div>
                                 </div>
                                 <p class="text-xs text-muted-foreground">
-                                    El seguimiento de progreso estará disponible próximamente
+                                    {{ loading ? 'Cargando...' : `${progressStats.semanal.completados} de ${progressStats.semanal.total} objetivos completados esta semana` }}
                                 </p>
                             </div>
                             
-                            <!-- Placeholder para logros -->
-                            <div class="flex items-center gap-3 p-3 bg-accent rounded-lg">
-                                <Star class="h-5 w-5 text-yellow-500" />
-                                <div>
-                                    <p class="font-medium text-sm">Sistema de logros</p>
-                                    <p class="text-xs text-muted-foreground">Próximamente disponible</p>
+                            <!-- Estadísticas adicionales -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="flex items-center gap-3 p-3 bg-accent rounded-lg">
+                                    <Flame class="h-5 w-5 text-orange-500" />
+                                    <div>
+                                        <p class="font-medium text-sm">{{ progressStats.rachaGlobal }}</p>
+                                        <p class="text-xs text-muted-foreground">Días de racha</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-accent rounded-lg">
+                                    <Target class="h-5 w-5 text-primary" />
+                                    <div>
+                                        <p class="font-medium text-sm">{{ objetivos.filter(o => o.activo).length }}</p>
+                                        <p class="text-xs text-muted-foreground">Objetivos activos</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

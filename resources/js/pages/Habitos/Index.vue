@@ -13,16 +13,34 @@ import { type BreadcrumbItem } from '@/types';
 import axios from 'axios';
 
 // Interfaces
+interface Objetivo {
+    id: number;
+    user_id: number;
+    nombre: string;
+    descripcion: string;
+    emoji?: string;
+    color?: string;
+    tipo: string;
+    fecha_inicio: string;
+    fecha_objetivo?: string;
+    completado: boolean;
+    fecha_completado?: string;
+    activo: boolean;
+}
+
 interface Habito {
     id: number;
     categoria_id: number;
+    objetivo_id?: number;
     categoria?: Categoria;
+    objetivo?: Objetivo;
     nombre: string;
     descripcion: string;
     frecuencia: string;
     hora_preferida: string;
     objetivo_diario: number;
     fecha_inicio: string;
+    fecha_fin?: string;
     activo: boolean;
     emoji?: string;
     color?: string;
@@ -48,6 +66,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 // Estado de los hábitos
 const habitos = ref<Habito[]>([]);
 const categorias = ref<Categoria[]>([]);
+const objetivos = ref<Objetivo[]>([]);
 const loading = ref(true);
 const isDialogOpen = ref(false);
 const isEditMode = ref(false);
@@ -56,12 +75,13 @@ const editingId = ref<number | null>(null);
 // Estado del formulario
 const form = ref({
     categoria_id: '',
+    objetivo_id: '',
     nombre: '',
     descripcion: '',
     frecuencia: 'diario',
-    hora_preferida: '',
     objetivo_diario: '1',
     fecha_inicio: '',
+    fecha_fin: '',
     activo: true
 });
 
@@ -84,16 +104,30 @@ const fetchHabitos = async () => {
     try {
         loading.value = true;
         
-        const response = await axios.get('/api/web/habitos', {
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': getCSRFToken(),
-            },
-            withCredentials: true
-        });
+        // Cargar hábitos y objetivos en paralelo
+        const [habitosResponse, objetivosResponse] = await Promise.all([
+            axios.get('/api/web/habitos', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCSRFToken(),
+                },
+                withCredentials: true
+            }),
+            axios.get('/api/web/objetivos', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCSRFToken(),
+                },
+                withCredentials: true
+            })
+        ]);
 
-        if (response.data.success) {
-            habitos.value = response.data.data;
+        if (habitosResponse.data.success) {
+            habitos.value = habitosResponse.data.data;
+        }
+
+        if (objetivosResponse.data.success) {
+            objetivos.value = objetivosResponse.data.data;
         }
     } catch (error: any) {
         console.error('Error al cargar hábitos:', error);
@@ -248,12 +282,13 @@ const editHabito = async (id: number) => {
             // Cargar datos en el formulario
             form.value = {
                 categoria_id: habito.categoria_id?.toString() || '',
+                objetivo_id: habito.objetivo_id?.toString() || '',
                 nombre: habito.nombre,
                 descripcion: habito.descripcion || '',
                 frecuencia: habito.frecuencia,
-                hora_preferida: habito.hora_preferida || '',
                 objetivo_diario: habito.objetivo_diario?.toString() || '1',
                 fecha_inicio: habito.fecha_inicio ? habito.fecha_inicio.split('T')[0] : '',
+                fecha_fin: habito.fecha_fin ? habito.fecha_fin.split('T')[0] : '',
                 activo: habito.activo
             };
             
@@ -338,12 +373,13 @@ const openCreateDialog = () => {
 const resetForm = () => {
     form.value = {
         categoria_id: '',
+        objetivo_id: '',
         nombre: '',
         descripcion: '',
         frecuencia: 'diario',
-        hora_preferida: '',
         objetivo_diario: '1',
         fecha_inicio: '',
+        fecha_fin: '',
         activo: true
     };
     isEditMode.value = false;
@@ -440,6 +476,26 @@ onMounted(() => {
                                 </select>
                             </div>
                             
+                            <div class="space-y-2">
+                                <Label for="objetivo">Objetivo (Opcional)</Label>
+                                <select
+                                    v-model="form.objetivo_id"
+                                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="">Sin objetivo específico</option>
+                                    <option
+                                        v-for="objetivo in objetivos.filter(o => o.activo)"
+                                        :key="objetivo.id"
+                                        :value="objetivo.id"
+                                    >
+                                        {{ objetivo.emoji }} {{ objetivo.nombre }}
+                                    </option>
+                                </select>
+                                <p class="text-xs text-muted-foreground">
+                                    Asocia este hábito con un objetivo para mejor seguimiento
+                                </p>
+                            </div>
+                            
                             <div class="grid grid-cols-1 gap-4">
                                 <div class="space-y-2">
                                     <Label for="frecuencia">Frecuencia</Label>
@@ -458,36 +514,42 @@ onMounted(() => {
                                 </div>
                             </div>
                             
+                            <div class="space-y-2">
+                                <Label for="objetivo_diario">Objetivo Diario</Label>
+                                <Input
+                                    id="objetivo_diario"
+                                    v-model="form.objetivo_diario"
+                                    type="number"
+                                    min="1"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    Los horarios se configuran en la sección de recordatorios
+                                </p>
+                            </div>
+                            
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="space-y-2">
-                                    <Label for="hora_preferida">Hora Preferida</Label>
+                                    <Label for="fecha_inicio">Fecha de Inicio</Label>
                                     <Input
-                                        id="hora_preferida"
-                                        v-model="form.hora_preferida"
-                                        type="time"
+                                        id="fecha_inicio"
+                                        v-model="form.fecha_inicio"
+                                        type="date"
+                                        required
                                     />
                                 </div>
                                 
                                 <div class="space-y-2">
-                                    <Label for="objetivo_diario">Objetivo Diario</Label>
+                                    <Label for="fecha_fin">Fecha Objetivo (Opcional)</Label>
                                     <Input
-                                        id="objetivo_diario"
-                                        v-model="form.objetivo_diario"
-                                        type="number"
-                                        min="1"
+                                        id="fecha_fin"
+                                        v-model="form.fecha_fin"
+                                        type="date"
                                     />
                                 </div>
                             </div>
-                            
-                            <div class="space-y-2">
-                                <Label for="fecha_inicio">Fecha de Inicio</Label>
-                                <Input
-                                    id="fecha_inicio"
-                                    v-model="form.fecha_inicio"
-                                    type="date"
-                                    required
-                                />
-                            </div>
+                            <p class="text-xs text-muted-foreground">
+                                La fecha objetivo te ayuda a establecer metas específicas y medir tu progreso
+                            </p>
                         </div>
                         
                         <DialogFooter>
@@ -534,9 +596,12 @@ onMounted(() => {
                         <div class="flex items-start justify-between">
                             <div class="space-y-1">
                                 <CardTitle class="text-lg">{{ habito.nombre }}</CardTitle>
-                                <div v-if="habito.categoria" class="flex items-center gap-2">
-                                    <Badge variant="outline" class="text-xs">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <Badge v-if="habito.categoria" variant="outline" class="text-xs">
                                         {{ habito.categoria.nombre }}
+                                    </Badge>
+                                    <Badge v-if="habito.objetivo" variant="secondary" class="text-xs">
+                                        {{ habito.objetivo.emoji }} {{ habito.objetivo.nombre }}
                                     </Badge>
                                 </div>
                                 <CardDescription>{{ habito.descripcion }}</CardDescription>
@@ -566,7 +631,14 @@ onMounted(() => {
                             </div>
 
                             <div class="text-sm text-muted-foreground mt-2">
-                                Inicio: {{ formatDate(habito.fecha_inicio) }}
+                                <div class="flex items-center gap-2">
+                                    <Calendar class="w-4 h-4" />
+                                    <span>Inicio: {{ formatDate(habito.fecha_inicio) }}</span>
+                                </div>
+                                <div v-if="habito.fecha_fin" class="flex items-center gap-2 mt-1">
+                                    <Target class="w-4 h-4" />
+                                    <span>Objetivo: {{ formatDate(habito.fecha_fin) }}</span>
+                                </div>
                             </div>
                         </div>
 

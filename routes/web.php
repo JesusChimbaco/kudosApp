@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\Web\RecordatorioWebController;
 use App\Http\Controllers\Api\RegistroDiarioController;
 use App\Http\Controllers\Api\ObjetivoController;
+use App\Http\Controllers\Api\DashboardController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -63,6 +64,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::match(['put', 'patch'], '/api/web/objetivos/{id}', [ObjetivoController::class, 'update']);
     Route::delete('/api/web/objetivos/{id}', [ObjetivoController::class, 'destroy']);
     Route::post('/api/web/objetivos/{id}/completar', [ObjetivoController::class, 'marcarCompletado']);
+    
+    // Rutas para dashboard y estadísticas
+    Route::get('/api/web/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/api/web/dashboard/objetivos-resumen', [DashboardController::class, 'objetivosResumen']);
 });
 
 require __DIR__.'/settings.php';
