@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Recordatorio extends Model
 {
@@ -26,6 +27,8 @@ class Recordatorio extends Model
         'dias_semana',
         'tipo',
         'mensaje_personalizado',
+        'enviar_seguimiento',
+        'minutos_seguimiento',
     ];
 
     /**
@@ -35,6 +38,8 @@ class Recordatorio extends Model
      */
     protected $casts = [
         'activo' => 'boolean',
+        'enviar_seguimiento' => 'boolean',
+        'minutos_seguimiento' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -46,6 +51,15 @@ class Recordatorio extends Model
     public function habito(): BelongsTo
     {
         return $this->belongsTo(Habito::class);
+    }
+
+    /**
+     * Relación: Un recordatorio tiene muchos recordatorios enviados.
+     * Equivalente a @OneToMany en Spring Boot
+     */
+    public function recordatoriosEnviados(): HasMany
+    {
+        return $this->hasMany(RecordatorioEnviado::class);
     }
 
     /**

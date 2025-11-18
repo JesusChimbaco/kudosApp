@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\HabitoController;
 use App\Http\Controllers\Api\RegistroDiarioController;
 use App\Http\Controllers\Api\RecordatorioController;
+use App\Http\Controllers\Api\ObjetivoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -99,4 +100,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // CRUD completo de hábitos
     Route::apiResource('habitos', HabitoController::class);
+
+    // Rutas de Objetivos
+    Route::prefix('objetivos')->group(function () {
+        Route::post('/{id}/completar', [ObjetivoController::class, 'marcarCompletado']);
+    });
+    Route::apiResource('objetivos', ObjetivoController::class);
 });

@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Mail\RecordatorioHabito;
 use App\Models\Recordatorio;
+use App\Models\RecordatorioEnviado;
+use App\Jobs\EnviarRecordatorioSeguimiento;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Mail;
@@ -72,11 +74,35 @@ class EnviarRecordatorioHabito implements ShouldQueue
                 )
             );
 
+            // Registrar el envío en la base de datos
+            $recordatorioEnviado = RecordatorioEnviado::create([
+                'recordatorio_id' => $this->recordatorio->id,
+                'habito_id' => $habito->id,
+                'fecha_envio' => now()->toDateString(),
+                'hora_envio' => now()->toTimeString(),
+                'seguimiento_enviado' => false,
+                'completado' => false,
+            ]);
+
+            // Si el recordatorio tiene seguimiento habilitado, programar el envío de seguimiento
+            if ($this->recordatorio->enviar_seguimiento) {
+                $minutosEspera = $this->recordatorio->minutos_seguimiento ?? 5;
+                
+                EnviarRecordatorioSeguimiento::dispatch($recordatorioEnviado)
+                    ->delay(now()->addMinutes($minutosEspera));
+
+                Log::info('Recordatorio de seguimiento programado', [
+                    'recordatorio_enviado_id' => $recordatorioEnviado->id,
+                    'minutos_espera' => $minutosEspera
+                ]);
+            }
+
             Log::info('Recordatorio enviado exitosamente', [
                 'recordatorio_id' => $this->recordatorio->id,
                 'habito_id' => $habito->id,
                 'user_id' => $usuario->id,
-                'email' => $usuario->email
+                'email' => $usuario->email,
+                'recordatorio_enviado_id' => $recordatorioEnviado->id
             ]);
 
         } catch (\Exception $e) {

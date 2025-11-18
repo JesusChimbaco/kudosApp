@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\HabitoController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\Web\RecordatorioWebController;
 use App\Http\Controllers\Api\RegistroDiarioController;
+use App\Http\Controllers\Api\ObjetivoController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -54,6 +55,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/api/web/habitos/{habitoId}/recordatorios/{recordatorioId}', [RecordatorioWebController::class, 'update']);
     Route::delete('/api/web/habitos/{habitoId}/recordatorios/{recordatorioId}', [RecordatorioWebController::class, 'destroy']);
     Route::post('/api/web/habitos/{habitoId}/recordatorios/{recordatorioId}/toggle', [RecordatorioWebController::class, 'toggle']);
+    
+    // Rutas para objetivos (autenticación por sesión)
+    Route::get('/api/web/objetivos', [ObjetivoController::class, 'index']);
+    Route::get('/api/web/objetivos/{id}', [ObjetivoController::class, 'show']);
+    Route::post('/api/web/objetivos', [ObjetivoController::class, 'store']);
+    Route::match(['put', 'patch'], '/api/web/objetivos/{id}', [ObjetivoController::class, 'update']);
+    Route::delete('/api/web/objetivos/{id}', [ObjetivoController::class, 'destroy']);
+    Route::post('/api/web/objetivos/{id}/completar', [ObjetivoController::class, 'marcarCompletado']);
 });
 
 require __DIR__.'/settings.php';

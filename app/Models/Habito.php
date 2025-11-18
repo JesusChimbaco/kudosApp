@@ -23,6 +23,7 @@ class Habito extends Model
     protected $fillable = [
         'user_id',
         'categoria_id',
+        'objetivo_id',
         'nombre',
         'descripcion',
         'emoji',
@@ -73,6 +74,15 @@ class Habito extends Model
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(Categoria::class);
+    }
+
+    /**
+     * Relación: Un hábito pertenece a un objetivo.
+     * Equivalente a @ManyToOne en Spring Boot
+     */
+    public function objetivo(): BelongsTo
+    {
+        return $this->belongsTo(Objetivo::class);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Habito;
 use App\Models\RegistroDiario;
+use App\Models\RecordatorioEnviado;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -73,6 +74,15 @@ class RegistroDiarioController extends Controller
 
             // Actualizar racha del hábito
             $this->actualizarRacha($habito);
+
+            // Marcar recordatorios enviados de hoy como completados
+            RecordatorioEnviado::where('habito_id', $habito->id)
+                ->whereDate('fecha_envio', $fecha)
+                ->where('completado', false)
+                ->update([
+                    'completado' => true,
+                    'completado_at' => now(),
+                ]);
 
             DB::commit();
 

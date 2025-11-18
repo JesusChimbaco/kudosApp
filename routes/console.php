@@ -13,3 +13,9 @@ Schedule::command('recordatorios:enviar')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Verificar recordatorios de seguimiento cada minuto
+Schedule::command('recordatorios:verificar-seguimiento')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->runInBackground();
