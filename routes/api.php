@@ -99,11 +99,23 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // CRUD completo de hábitos
-    Route::apiResource('habitos', HabitoController::class);
+    Route::apiResource('habitos', HabitoController::class)->names([
+        'index' => 'api.habitos.index',
+        'show' => 'api.habitos.show',
+        'store' => 'api.habitos.store',
+        'update' => 'api.habitos.update',
+        'destroy' => 'api.habitos.destroy',
+    ]);
 
     // Rutas de Objetivos
     Route::prefix('objetivos')->group(function () {
         Route::post('/{id}/completar', [ObjetivoController::class, 'marcarCompletado']);
     });
-    Route::apiResource('objetivos', ObjetivoController::class);
+    Route::apiResource('objetivos', ObjetivoController::class)->names([
+        'index' => 'api.objetivos.index',
+        'show' => 'api.objetivos.show',
+        'store' => 'api.objetivos.store',
+        'update' => 'api.objetivos.update',
+        'destroy' => 'api.objetivos.destroy',
+    ]);
 });
