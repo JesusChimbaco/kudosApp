@@ -8,6 +8,12 @@ use App\Http\Controllers\Web\RecordatorioWebController;
 use App\Http\Controllers\Api\RegistroDiarioController;
 use App\Http\Controllers\Api\ObjetivoController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Jobs\TestEmailJob;
+
+Route::get('/test-email', function () {
+    TestEmailJob::dispatch();
+    return 'Job de prueba despachado. Revisa los logs del worker.';
+});
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
