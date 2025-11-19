@@ -112,7 +112,7 @@ import { Head, Link } from '@inertiajs/vue3';
                                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-4 font-instrument">Seguimiento Diario</h3>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-4 font-instrument">Seguimiento diario</h3>
                         <p class="text-gray-600 leading-relaxed">
                             Registra tus hábitos fácilmente y observa tu progreso con visualizaciones intuitivas que te mantienen motivado.
                         </p>
@@ -124,7 +124,7 @@ import { Head, Link } from '@inertiajs/vue3';
                                 <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-4 font-instrument">Logros & Recompensas</h3>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-4 font-instrument">Logros y recompensas</h3>
                         <p class="text-gray-600 leading-relaxed">
                             Celebra tus victorias con un sistema de logros que reconoce tu dedicación y constancia.
                         </p>
@@ -136,7 +136,7 @@ import { Head, Link } from '@inertiajs/vue3';
                                 <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                             </svg>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-4 font-instrument">Recordatorios Inteligentes</h3>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-4 font-instrument">Recordatorios inteligentes</h3>
                         <p class="text-gray-600 leading-relaxed">
                             Nunca olvides tus hábitos con recordatorios personalizados que se adaptan a tu rutina diaria.
                         </p>

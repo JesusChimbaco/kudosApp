@@ -29,7 +29,7 @@ const mainNavItems: NavItem[] = [
         icon: Target,
     },
     {
-        title: 'Gestión de Hábitos',
+        title: 'Gestión de hábitos',
         href: '/habitos',
         icon: CheckSquare,
     },

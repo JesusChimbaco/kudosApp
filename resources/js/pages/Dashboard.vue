@@ -267,7 +267,7 @@ const shouldShowHabit = (habito: Habito, date: Date): boolean => {
 // Datos con valores reales
 const getStats = () => [
     {
-        title: 'Hábitos de Hoy',
+        title: 'Hábitos de hoy',
         value: loading.value ? '...' : `${completadosHoy.value}/${habitosActivos.value}`,
         description: 'Completados hoy',
         icon: CheckSquare,
@@ -275,7 +275,7 @@ const getStats = () => [
         color: 'text-primary'
     },
     {
-        title: 'Racha Actual',
+        title: 'Racha actual',
         value: loading.value ? '...' : `${progressStats.value.rachaGlobal}`,
         description: 'Días consecutivos',
         icon: Flame,
@@ -283,7 +283,7 @@ const getStats = () => [
         color: 'text-orange-600'
     },
     {
-        title: 'Progreso Mensual',
+        title: 'Progreso mensual',
         value: loading.value ? '...' : `${progressStats.value.mensual.porcentaje}%`,
         description: 'Objetivos completados',
         icon: TrendingUp,
@@ -345,7 +345,7 @@ onMounted(() => {
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2">
                             <Calendar class="h-5 w-5 text-primary" />
-                            Hábitos de Hoy
+                            Hábitos de hoy
                         </CardTitle>
                         <CardDescription>
                             Completa tus hábitos diarios para mantener tu racha
@@ -437,7 +437,7 @@ onMounted(() => {
                     <CardHeader>
                         <CardTitle class="flex items-center gap-2">
                             <Target class="h-5 w-5 text-secondary" />
-                            Progreso Semanal
+                            Progreso semanal
                         </CardTitle>
                         <CardDescription>
                             Tu rendimiento durante los últimos 7 días
@@ -448,7 +448,7 @@ onMounted(() => {
                             <!-- Progress bar semanal -->
                             <div class="space-y-2">
                                 <div class="flex justify-between text-sm">
-                                    <span>Progreso Semanal</span>
+                                    <span>Progreso semanal</span>
                                     <span class="font-medium">
                                         {{ loading ? '...' : `${progressStats.semanal.porcentaje}%` }}
                                     </span>

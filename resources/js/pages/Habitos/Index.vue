@@ -57,7 +57,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/dashboard',
     },
     {
-        title: 'Gestión de Hábitos',
+        title: 'Gestión de hábitos',
         href: '/habitos',
     },
 ];
@@ -439,14 +439,14 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head title="Gestión de Hábitos" />
+    <Head title="Gestión de hábitos" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-6 space-y-6">
             <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold tracking-tight text-gradient-kudos">Gestión de Hábitos</h1>
+                    <h1 class="text-3xl font-bold tracking-tight text-gradient-kudos">Gestión de hábitos</h1>
                     <p class="text-muted-foreground">
                         Administra tus hábitos y haz seguimiento de tu progreso
                     </p>

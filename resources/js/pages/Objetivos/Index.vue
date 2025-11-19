@@ -357,7 +357,7 @@ onMounted(() => {
             <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-3xl font-bold text-gradient-kudos">Mis Objetivos</h1>
+                    <h1 class="text-3xl font-bold text-gradient-kudos">Mis objetivos</h1>
                     <p class="text-muted-foreground">
                         Gestiona tus objetivos y los hábitos que te ayudarán a alcanzarlos
                     </p>
@@ -367,13 +367,13 @@ onMounted(() => {
                         <div class="flex gap-2">
                             <Button class="gap-2">
                                 <Plus class="h-4 w-4" />
-                                Crear Objetivo
+                                Crear objetivo
                             </Button>
                         </div>
                     </DialogTrigger>
                     <DialogContent class="sm:max-w-md">
                         <DialogHeader>
-                            <DialogTitle>Crear Nuevo Objetivo</DialogTitle>
+                            <DialogTitle>Crear nuevo objetivo</DialogTitle>
                             <DialogDescription>
                                 Define tu objetivo y establece una fecha límite para mantener el enfoque.
                             </DialogDescription>
@@ -485,7 +485,7 @@ onMounted(() => {
                                     Cancelar
                                 </Button>
                                 <Button type="submit">
-                                    Crear Objetivo
+                                    Crear objetivo
                                 </Button>
                             </div>
                         </form>
@@ -497,7 +497,7 @@ onMounted(() => {
             <div class="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">Objetivos Activos</CardTitle>
+                        <CardTitle class="text-sm font-medium">Objetivos activos</CardTitle>
                         <Target class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -666,7 +666,7 @@ onMounted(() => {
         <Dialog v-model:open="showEditDialog">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Editar Objetivo</DialogTitle>
+                    <DialogTitle>Editar objetivo</DialogTitle>
                     <DialogDescription>
                         Modifica los detalles de tu objetivo.
                     </DialogDescription>
@@ -779,7 +779,7 @@ onMounted(() => {
                             Cancelar
                         </Button>
                         <Button type="submit">
-                            Guardar Cambios
+                            Guardar cambios
                         </Button>
                     </div>
                 </form>

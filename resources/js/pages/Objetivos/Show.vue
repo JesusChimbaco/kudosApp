@@ -492,12 +492,12 @@ onMounted(() => {
                         <DialogTrigger as-child>
                             <Button class="gap-2">
                                 <Plus class="h-4 w-4" />
-                                Agregar Hábito
+                                Agregar hábito
                             </Button>
                         </DialogTrigger>
                         <DialogContent class="sm:max-w-md">
                             <DialogHeader>
-                                <DialogTitle>Crear Nuevo Hábito</DialogTitle>
+                                <DialogTitle>Crear nuevo hábito</DialogTitle>
                                 <DialogDescription>
                                     Agrega un hábito que te ayude a alcanzar este objetivo.
                                 </DialogDescription>
@@ -612,7 +612,7 @@ onMounted(() => {
                                         Cancelar
                                     </Button>
                                     <Button type="submit">
-                                        Crear Hábito
+                                        Crear hábito
                                     </Button>
                                 </div>
                             </form>
@@ -642,7 +642,7 @@ onMounted(() => {
                     </Card>
                     <Card>
                         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle class="text-sm font-medium">Hábitos Totales</CardTitle>
+                            <CardTitle class="text-sm font-medium">Hábitos totales</CardTitle>
                             <CheckSquare class="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
