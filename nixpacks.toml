@@ -1,11 +1,13 @@
 [phases.setup]
-nixPkgs = ["nodejs", "npm", "php82", "php82Packages.composer"]
+nixPkgs = ["nodejs", "php82", "php82Packages.composer"]
 
 [phases.install]
 cmds = [
   "composer install --no-dev --optimize-autoloader",
-  "npm ci",
-  "npm run build"
+  "corepack enable",
+  "corepack prepare pnpm@latest --activate",
+  "pnpm install --frozen-lockfile",
+  "pnpm run build"
 ]
 
 [phases.build]
