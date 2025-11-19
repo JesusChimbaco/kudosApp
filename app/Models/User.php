@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
+/**
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Habito> $habitos
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Logro> $logros
+ * @property-read int|null $habitos_count
+ * @property-read int|null $logros_count
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -76,8 +83,7 @@ class User extends Authenticatable
     public function logros(): BelongsToMany
     {
         return $this->belongsToMany(Logro::class, 'logro_usuario')
-            ->withPivot('fecha_obtenido', 'habito_id')
-            ->withTimestamps();
+            ->withPivot('fecha_obtenido', 'habito_id');
     }
 
     /**
