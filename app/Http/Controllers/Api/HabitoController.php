@@ -19,7 +19,7 @@ class HabitoController extends Controller
     {
         // Obtener solo los hábitos del usuario autenticado
         $habitos = Auth::user()->habitos()
-            ->with(['categoria', 'recordatorios']) // Eager loading
+            ->with(['categoria', 'objetivo', 'recordatorios']) // Eager loading
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -42,6 +42,7 @@ class HabitoController extends Controller
             'nombre' => 'required|string|max:100',
             'descripcion' => 'nullable|string|max:500',
             'categoria_id' => 'required|exists:categorias,id',
+            'objetivo_id' => 'nullable|exists:objetivos,id',
             'frecuencia' => ['required', Rule::in(['diario', 'semanal', 'mensual', 'personalizado'])],
             'dias_semana' => 'nullable|array',
             'dias_semana.*' => 'integer|min:0|max:6',
@@ -64,7 +65,7 @@ class HabitoController extends Controller
         $habito = Habito::create($validated);
 
         // Cargar relaciones para la respuesta
-        $habito->load(['categoria', 'recordatorios']);
+        $habito->load(['categoria', 'objetivo', 'recordatorios']);
 
         return response()->json([
             'success' => true,
@@ -82,7 +83,7 @@ class HabitoController extends Controller
     public function show($id)
     {
         // Buscar el hábito
-        $habito = Habito::with(['categoria', 'recordatorios', 'registrosDiarios'])
+        $habito = Habito::with(['categoria', 'objetivo', 'recordatorios', 'registrosDiarios'])
             ->findOrFail($id);
 
         // Verificar que el hábito pertenezca al usuario autenticado

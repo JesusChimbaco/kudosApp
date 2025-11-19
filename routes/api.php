@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\HabitoController;
+use App\Http\Controllers\Api\RegistroDiarioController;
+use App\Http\Controllers\Api\RecordatorioController;
+use App\Http\Controllers\Api\ObjetivoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -82,8 +85,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/activos', [HabitoController::class, 'activos']);
         Route::get('/estadisticas', [HabitoController::class, 'estadisticas']);
         Route::patch('/{id}/toggle-activo', [HabitoController::class, 'toggleActivo']);
+        
+        // Rutas de Registro Diario (marcar como completado)
+        Route::post('/{habito}/completar', [RegistroDiarioController::class, 'completar']);
+        Route::post('/{habito}/descompletar', [RegistroDiarioController::class, 'descompletar']);
+        Route::get('/{habito}/registros', [RegistroDiarioController::class, 'historial']);
+        Route::get('/{habito}/registro/{fecha}', [RegistroDiarioController::class, 'obtenerPorFecha']);
+        Route::get('/{habito}/estadisticas-detalladas', [RegistroDiarioController::class, 'estadisticasDetalladas']);
+        
+        // Rutas de Recordatorios
+        Route::post('/{habito}/recordatorios/{recordatorio}/toggle', [RecordatorioController::class, 'toggle']);
+        Route::apiResource('{habito}/recordatorios', RecordatorioController::class);
     });
 
     // CRUD completo de hábitos
     Route::apiResource('habitos', HabitoController::class);
+
+    // Rutas de Objetivos
+    Route::prefix('objetivos')->group(function () {
+        Route::post('/{id}/completar', [ObjetivoController::class, 'marcarCompletado']);
+    });
+    Route::apiResource('objetivos', ObjetivoController::class);
 });
