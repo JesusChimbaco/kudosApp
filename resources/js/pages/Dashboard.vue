@@ -140,10 +140,18 @@ const fetchHabitos = async () => {
     }
 };
 
+// Función para formatear fecha local (evita conversión UTC)
+const formatDateLocal = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 // Función para cargar los registros de hoy
 const fetchRegistrosHoy = async () => {
     const hoy = new Date();
-    const fechaHoy = hoy.toISOString().split('T')[0];
+    const fechaHoy = formatDateLocal(hoy);
     
     // Resetear registros y contador
     registrosHoy.value = {};
@@ -187,7 +195,7 @@ const toggleCompletado = async (habitoId: number) => {
         console.log('Llamando endpoint:', endpoint);
 
         const response = await axios.post(endpoint, {
-            fecha: new Date().toISOString().split('T')[0]
+            fecha: formatDateLocal(new Date())
         }, {
             headers: {
                 'Accept': 'application/json',

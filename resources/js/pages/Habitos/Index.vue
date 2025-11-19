@@ -37,13 +37,12 @@ interface Habito {
     nombre: string;
     descripcion: string;
     frecuencia: string;
-    hora_preferida: string;
-    objetivo_diario: number;
     fecha_inicio: string;
     fecha_fin?: string;
+    dias_semana?: string | number[];
     activo: boolean;
-    emoji?: string;
-    color?: string;
+    racha_actual?: number;
+    racha_maxima?: number;
 }
 
 interface Categoria {
@@ -79,9 +78,9 @@ const form = ref({
     nombre: '',
     descripcion: '',
     frecuencia: 'diario',
-    objetivo_diario: '1',
     fecha_inicio: '',
     fecha_fin: '',
+    dias_semana: [] as number[],
     activo: true
 });
 
@@ -170,7 +169,13 @@ const createHabito = async () => {
     try {
         const formData = {
             ...form.value,
-            objetivo_diario: parseInt(form.value.objetivo_diario)
+            // Convertir días_semana a string si es semanal
+            dias_semana: form.value.frecuencia === 'semanal' 
+                ? form.value.dias_semana.map(d => {
+                    const diasSemana = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+                    return diasSemana[d];
+                }).join('')
+                : null
         };
 
         const response = await axios.post('/api/web/habitos', formData, {
@@ -286,9 +291,9 @@ const editHabito = async (id: number) => {
                 nombre: habito.nombre,
                 descripcion: habito.descripcion || '',
                 frecuencia: habito.frecuencia,
-                objetivo_diario: habito.objetivo_diario?.toString() || '1',
                 fecha_inicio: habito.fecha_inicio ? habito.fecha_inicio.split('T')[0] : '',
                 fecha_fin: habito.fecha_fin ? habito.fecha_fin.split('T')[0] : '',
+                dias_semana: parseDiasSemana(habito.dias_semana),
                 activo: habito.activo
             };
             
@@ -311,7 +316,13 @@ const updateHabito = async () => {
     try {
         const formData = {
             ...form.value,
-            objetivo_diario: parseInt(form.value.objetivo_diario)
+            // Convertir días_semana a string si es semanal
+            dias_semana: form.value.frecuencia === 'semanal' 
+                ? form.value.dias_semana.map(d => {
+                    const diasSemana = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+                    return diasSemana[d];
+                }).join('')
+                : null
         };
 
         const response = await axios.put(`/api/web/habitos/${editingId.value}`, formData, {
@@ -377,13 +388,36 @@ const resetForm = () => {
         nombre: '',
         descripcion: '',
         frecuencia: 'diario',
-        objetivo_diario: '1',
         fecha_inicio: '',
         fecha_fin: '',
+        dias_semana: [],
         activo: true
     };
     isEditMode.value = false;
     editingId.value = null;
+};
+
+// Función para parsear días de la semana desde string
+const parseDiasSemana = (diasSemana: string | number[] | undefined): number[] => {
+    if (!diasSemana) return [];
+    if (Array.isArray(diasSemana)) return diasSemana;
+    if (typeof diasSemana === 'string') {
+        const diasMap: { [key: string]: number } = {
+            'D': 0, 'L': 1, 'M': 2, 'X': 3, 'J': 4, 'V': 5, 'S': 6
+        };
+        return diasSemana.split('').map(d => diasMap[d]).filter(d => d !== undefined);
+    }
+    return [];
+};
+
+// Función para alternar día de la semana
+const toggleDiaSemana = (dia: number) => {
+    const index = form.value.dias_semana.indexOf(dia);
+    if (index > -1) {
+        form.value.dias_semana.splice(index, 1);
+    } else {
+        form.value.dias_semana.push(dia);
+    }
 };
 
 const formatDate = (dateString: string) => {
@@ -514,16 +548,27 @@ onMounted(() => {
                                 </div>
                             </div>
                             
-                            <div class="space-y-2">
-                                <Label for="objetivo_diario">Objetivo Diario</Label>
-                                <Input
-                                    id="objetivo_diario"
-                                    v-model="form.objetivo_diario"
-                                    type="number"
-                                    min="1"
-                                />
+                            <!-- Días de la semana (solo si es semanal) -->
+                            <div v-if="form.frecuencia === 'semanal'" class="space-y-2">
+                                <Label>Días de la semana</Label>
+                                <div class="flex gap-2">
+                                    <button
+                                        v-for="(dia, index) in ['D', 'L', 'M', 'X', 'J', 'V', 'S']"
+                                        :key="index"
+                                        type="button"
+                                        @click="toggleDiaSemana(index)"
+                                        :class="[
+                                            'w-8 h-8 rounded-full border text-sm font-medium',
+                                            form.dias_semana.includes(index)
+                                                ? 'bg-primary text-primary-foreground border-primary'
+                                                : 'border-muted-foreground/20 hover:border-primary'
+                                        ]"
+                                    >
+                                        {{ dia }}
+                                    </button>
+                                </div>
                                 <p class="text-xs text-muted-foreground">
-                                    Los horarios se configuran en la sección de recordatorios
+                                    Selecciona los días en que quieres realizar este hábito
                                 </p>
                             </div>
                             
@@ -620,14 +665,21 @@ onMounted(() => {
                             <div class="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Clock class="w-4 h-4" />
                                 <span>{{ getFrecuenciaLabel(habito.frecuencia) }}</span>
-                                <span v-if="habito.hora_preferida">
-                                    a las {{ habito.hora_preferida }}
-                                </span>
                             </div>
 
-                            <div class="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                            <!-- Mostrar días de la semana si es semanal -->
+                            <div v-if="habito.frecuencia === 'semanal' && habito.dias_semana" class="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                                 <Target class="w-4 h-4" />
-                                <span>Objetivo diario: {{ habito.objetivo_diario }}</span>
+                                <span>Días: {{ typeof habito.dias_semana === 'string' ? habito.dias_semana : habito.dias_semana.join(', ') }}</span>
+                            </div>
+
+                            <!-- Mostrar rachas si existen -->
+                            <div v-if="habito.racha_actual && habito.racha_actual > 0" class="flex items-center gap-2 text-sm text-orange-600 mt-2">
+                                <span class="text-lg">🔥</span>
+                                <span>{{ habito.racha_actual }} días</span>
+                                <span v-if="habito.racha_maxima && habito.racha_maxima > habito.racha_actual" class="text-muted-foreground">
+                                    (máx: {{ habito.racha_maxima }})
+                                </span>
                             </div>
 
                             <div class="text-sm text-muted-foreground mt-2">

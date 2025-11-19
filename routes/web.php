@@ -25,6 +25,16 @@ Route::get('calendario', function () {
     return Inertia::render('Calendario/Index');
 })->middleware(['auth', 'verified'])->name('calendario.index');
 
+Route::get('objetivos', function () {
+    return Inertia::render('Objetivos/Index');
+})->middleware(['auth', 'verified'])->name('objetivos.index');
+
+Route::get('objetivos/{objetivoId}', function ($objetivoId) {
+    return Inertia::render('Objetivos/Show', [
+        'objetivoId' => (int) $objetivoId
+    ]);
+})->middleware(['auth', 'verified'])->name('objetivos.show');
+
 Route::get('habitos/{habitoId}/recordatorios', function ($habitoId) {
     return Inertia::render('Habitos/Recordatorios', [
         'habitoId' => (int) $habitoId

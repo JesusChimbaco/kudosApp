@@ -14,7 +14,7 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, CheckSquare, Calendar } from 'lucide-vue-next';
+import { BookOpen, Folder, LayoutGrid, CheckSquare, Calendar, Target } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -22,6 +22,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Objetivos',
+        href: '/objetivos',
+        icon: Target,
     },
     {
         title: 'Gestión de Hábitos',
